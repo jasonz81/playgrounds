@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>今天吃什么？</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🍽️ 今天吃什么？</h1>
+        
+        <div class="card">
+            <button id="pickBtn" class="pick-button">
+                <span class="button-text">开始选择</span>
+                <span class="button-icon">🎲</span>
+            </button>
+            
+            <div id="resultContainer" class="result-container">
+                <div id="result" class="result"></div>
+            </div>
+        </div>
+        
+        <div class="info-section">
+            <h3>餐厅列表</h3>
+            <div id="restaurantList" class="restaurant-list"></div>
+            <button id="editBtn" class="edit-button">编辑餐厅</button>
+        </div>
+    </div>
+    
+    <!-- 编辑模态框 -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>编辑餐厅列表</h2>
+            <textarea id="restaurantTextarea" placeholder="请输入餐厅名称，每行一个"></textarea>
+            <button id="saveBtn" class="save-button">保存</button>
+        </div>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>
+
