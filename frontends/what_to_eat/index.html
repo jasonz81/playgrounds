@@ -22,7 +22,11 @@
         </div>
         
         <div class="info-section">
-            <h3>餐厅列表</h3>
+            <div class="meal-type-tabs">
+                <button id="lunchBtn" class="meal-type-btn">午餐</button>
+                <button id="dinnerBtn" class="meal-type-btn">晚餐</button>
+            </div>
+            <h3>午餐餐厅列表</h3>
             <div id="restaurantList" class="restaurant-list"></div>
             <button id="editBtn" class="edit-button">编辑餐厅</button>
         </div>
@@ -32,7 +36,7 @@
     <div id="editModal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
-            <h2>编辑餐厅列表</h2>
+            <h2 id="editModalTitle">编辑餐厅列表</h2>
             <textarea id="restaurantTextarea" placeholder="请输入餐厅名称，每行一个"></textarea>
             <button id="saveBtn" class="save-button">保存</button>
         </div>

@@ -1,35 +1,36 @@
 // 初始化餐厅列表
-let restaurants = [];
+let lunchRestaurants = [];
+let dinnerRestaurants = [];
+let currentMealType = 'lunch'; // 当前选择的用餐类型
 
 // 加载餐厅列表
 function loadRestaurants() {
     fetch('restaurants.json')
         .then(response => response.json())
         .then(data => {
-            restaurants = data.restaurants;
+            lunchRestaurants = data.lunch || [];
+            dinnerRestaurants = data.dinner || [];
             updateRestaurantList();
         })
         .catch(error => {
             console.error('加载餐厅列表失败:', error);
             // 使用默认餐厅列表
-            restaurants = [
-                '肯德基',
-                '麦当劳',
-                '必胜客',
-                '海底捞',
-                '小龙坎',
-                '呷哺呷哺',
-                '真功夫',
-                '永和大王'
-            ];
+            lunchRestaurants = ['肯德基', '麦当劳', '必胜客', '真功夫', '永和大王'];
+            dinnerRestaurants = ['海底捞', '小龙坎', '呷哺呷哺', '烧烤', '日料'];
             updateRestaurantList();
         });
+}
+
+// 获取当前类型的餐厅列表
+function getCurrentRestaurants() {
+    return currentMealType === 'lunch' ? lunchRestaurants : dinnerRestaurants;
 }
 
 // 更新餐厅列表显示
 function updateRestaurantList() {
     const listContainer = document.getElementById('restaurantList');
     listContainer.innerHTML = '';
+    const restaurants = getCurrentRestaurants();
     restaurants.forEach((restaurant, index) => {
         const tag = document.createElement('span');
         tag.className = 'restaurant-tag';
@@ -41,6 +42,7 @@ function updateRestaurantList() {
 
 // 从餐厅列表中随机选择一个
 function pickRestaurant() {
+    const restaurants = getCurrentRestaurants();
     if (restaurants.length === 0) {
         alert('请先添加餐厅！');
         return;
@@ -111,6 +113,11 @@ function pickRestaurant() {
 function showEditModal() {
     const modal = document.getElementById('editModal');
     const textarea = document.getElementById('restaurantTextarea');
+    const titleElement = document.getElementById('editModalTitle');
+    const restaurants = getCurrentRestaurants();
+    const mealTypeName = currentMealType === 'lunch' ? '午餐' : '晚餐';
+    
+    titleElement.textContent = `编辑${mealTypeName}餐厅列表`;
     textarea.value = restaurants.join('\n');
     modal.style.display = 'block';
 }
@@ -128,11 +135,21 @@ function saveRestaurants() {
         return;
     }
     
-    restaurants = newRestaurants;
+    // 根据当前用餐类型保存
+    if (currentMealType === 'lunch') {
+        lunchRestaurants = newRestaurants;
+    } else {
+        dinnerRestaurants = newRestaurants;
+    }
+    
     updateRestaurantList();
     
     // 保存到 localStorage
-    localStorage.setItem('restaurants', JSON.stringify(restaurants));
+    const data = {
+        lunch: lunchRestaurants,
+        dinner: dinnerRestaurants
+    };
+    localStorage.setItem('restaurants', JSON.stringify(data));
     
     // 关闭模态框
     document.getElementById('editModal').style.display = 'none';
@@ -146,7 +163,15 @@ function loadFromLocalStorage() {
     const saved = localStorage.getItem('restaurants');
     if (saved) {
         try {
-            restaurants = JSON.parse(saved);
+            const data = JSON.parse(saved);
+            // 兼容旧数据格式
+            if (Array.isArray(data)) {
+                lunchRestaurants = data;
+                dinnerRestaurants = [];
+            } else {
+                lunchRestaurants = data.lunch || [];
+                dinnerRestaurants = data.dinner || [];
+            }
             updateRestaurantList();
             return true;
         } catch (e) {
@@ -154,6 +179,25 @@ function loadFromLocalStorage() {
         }
     }
     return false;
+}
+
+// 切换用餐类型
+function switchMealType(type) {
+    currentMealType = type;
+    updateRestaurantList();
+    
+    // 更新按钮样式
+    document.querySelectorAll('.meal-type-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.getElementById(type + 'Btn').classList.add('active');
+    
+    // 更新标题
+    const title = document.querySelector('.info-section h3');
+    title.textContent = type === 'lunch' ? '午餐餐厅列表' : '晚餐餐厅列表';
+    
+    // 清空选择结果
+    document.getElementById('result').textContent = '';
 }
 
 // 初始化
@@ -166,6 +210,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // 绑定事件
     document.getElementById('pickBtn').addEventListener('click', pickRestaurant);
+    document.getElementById('lunchBtn').addEventListener('click', () => switchMealType('lunch'));
+    document.getElementById('dinnerBtn').addEventListener('click', () => switchMealType('dinner'));
     document.getElementById('editBtn').addEventListener('click', showEditModal);
     document.getElementById('saveBtn').addEventListener('click', saveRestaurants);
     document.querySelector('.close').addEventListener('click', () => {
@@ -178,5 +224,9 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('editModal').style.display = 'none';
         }
     });
+    
+    // 默认显示午餐列表
+    document.getElementById('lunchBtn').classList.add('active');
+    document.querySelector('.info-section h3').textContent = '午餐餐厅列表';
 });
 
