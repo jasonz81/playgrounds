@@ -205,6 +205,19 @@ module.exports = async (req, res) => {
     return;
   }
 
+  // 测试接口：直接返回随机餐厅（用于测试）
+  if (req.method === 'GET' && (pathname === '/test' || pathname === '/api/test')) {
+    const restaurant = getRandomRestaurant();
+    res.json({ 
+      status: 'ok',
+      message: '这是一个测试接口，返回随机餐厅',
+      restaurant: restaurant,
+      all_restaurants: restaurants,
+      total_count: restaurants.length
+    });
+    return;
+  }
+
   // 处理 POST 请求（Webhook）
   // 支持 /webhook 和 /api/index 路径
   if (req.method === 'POST' && (pathname === '/webhook' || pathname === '/api/index' || pathname === '/api/webhook')) {

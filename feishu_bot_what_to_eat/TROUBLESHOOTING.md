@@ -15,7 +15,7 @@
 **测试：**
 ```bash
 # 正确的路径
-curl -X POST https://your-app.vercel.app/webhook \
+curl -X POST https://playgrounds-gamma.vercel.app/webhook \
   -H "Content-Type: application/json" \
   -d '{"type":"url_verification","challenge":"test123"}'
 
