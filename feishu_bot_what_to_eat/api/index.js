@@ -167,35 +167,69 @@ module.exports = async (req, res) => {
   // 设置 CORS 头
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-lark-request-timestamp, x-lark-request-nonce, x-lark-signature');
 
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
   }
 
-  // 健康检查
-  if (req.method === 'GET' && (req.url === '/health' || req.url === '/api/health')) {
+  // 获取请求路径（Vercel 中 req.url 可能包含查询参数，需要解析）
+  let pathname = '/';
+  try {
+    if (req.url) {
+      // 移除查询参数
+      pathname = req.url.split('?')[0];
+    }
+  } catch (e) {
+    console.error('解析路径失败:', e);
+    pathname = req.url || '/';
+  }
+  
+  // 调试日志（生产环境可以移除）
+  console.log('收到请求:', {
+    method: req.method,
+    url: req.url,
+    pathname: pathname,
+    headers: Object.keys(req.headers)
+  });
+
+  // 健康检查 - 支持多种路径格式
+  if (req.method === 'GET' && (pathname === '/health' || pathname === '/api/health' || pathname === '/api/index')) {
     res.json({ 
       status: 'ok', 
       restaurants_count: restaurants.length,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      path: pathname
     });
     return;
   }
 
   // 处理 POST 请求（Webhook）
-  if (req.method === 'POST') {
+  // 支持 /webhook 和 /api/index 路径
+  if (req.method === 'POST' && (pathname === '/webhook' || pathname === '/api/index' || pathname === '/api/webhook')) {
     try {
-      const { type, challenge, token } = req.body;
+      // 确保请求体已解析
+      let body = req.body;
+      if (typeof body === 'string') {
+        try {
+          body = JSON.parse(body);
+        } catch (e) {
+          console.error('解析请求体失败:', e);
+          res.status(400).json({ error: 'Invalid JSON' });
+          return;
+        }
+      }
+
+      const { type, challenge, token } = body || {};
 
       // URL验证
       if (type === 'url_verification') {
-        console.log('收到URL验证请求');
-        if (token === VERIFICATION_TOKEN || !VERIFICATION_TOKEN) {
+        console.log('收到URL验证请求, challenge:', challenge);
+        if (!VERIFICATION_TOKEN || token === VERIFICATION_TOKEN) {
           res.json({ challenge });
         } else {
-          console.error('验证token不匹配');
+          console.error('验证token不匹配, expected:', VERIFICATION_TOKEN, 'got:', token);
           res.status(403).json({ error: 'Invalid token' });
         }
         return;
@@ -205,9 +239,9 @@ module.exports = async (req, res) => {
       const timestamp = req.headers['x-lark-request-timestamp'];
       const nonce = req.headers['x-lark-request-nonce'];
       const signature = req.headers['x-lark-signature'];
-      const body = JSON.stringify(req.body);
+      const bodyString = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
 
-      if (ENCRYPT_KEY && !verifySignature(timestamp, nonce, body, signature)) {
+      if (ENCRYPT_KEY && !verifySignature(timestamp, nonce, bodyString, signature)) {
         console.error('签名验证失败');
         res.status(403).json({ error: 'Invalid signature' });
         return;
@@ -221,11 +255,17 @@ module.exports = async (req, res) => {
       res.json({ code: 0 });
     } catch (error) {
       console.error('处理webhook请求异常:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      res.status(500).json({ error: 'Internal server error', message: error.message });
     }
     return;
   }
 
-  res.status(404).json({ error: 'Not found' });
+  // 如果路径不匹配，返回 404
+  res.status(404).json({ 
+    error: 'Not found',
+    method: req.method,
+    path: pathname,
+    url: req.url
+  });
 };
 

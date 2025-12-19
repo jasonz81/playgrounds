@@ -98,17 +98,33 @@
    
    **你的 Webhook 地址：** `https://feishu-bot-what-to-eat.vercel.app/webhook`
 
-## 配置飞书应用
+## 配置飞书应用（重要！）
+
+**必须配置事件订阅（回调）才能接收群聊消息！**
+
+### 详细步骤：
 
 1. 登录 [飞书开放平台](https://open.feishu.cn/)
-2. 进入你的应用 > 事件订阅
-3. 在"请求地址 URL"中填入你的 Webhook 地址：
-   ```
-   https://your-project.vercel.app/webhook
-   ```
-4. 添加事件：`im.message.receive_v1`
-5. 点击"保存"
-6. 飞书会自动验证地址
+2. 进入你的应用
+3. **配置权限**（如果还没配置）：
+   - 进入"权限管理"
+   - 申请权限：`im:message` 和 `im:message:group_at_msg:readonly`
+4. **配置事件订阅**（关键步骤）：
+   - 进入"事件订阅"页面
+   - 在"请求地址 URL"中填入你的 Webhook 地址：
+     ```
+     https://your-project.vercel.app/webhook
+     ```
+   - 点击"保存"，飞书会自动验证地址
+   - **确保验证成功**（显示"验证成功"提示）
+   - 添加事件：`im.message.receive_v1`
+   - 确保事件状态为"已订阅"
+5. **添加机器人到群聊**：
+   - 进入"机器人"页面
+   - 配置机器人信息
+   - 在飞书群聊中添加机器人
+
+> 📖 **完整配置指南请参考：[FEISHU_CONFIG.md](./FEISHU_CONFIG.md)**
 
 ## 验证部署
 

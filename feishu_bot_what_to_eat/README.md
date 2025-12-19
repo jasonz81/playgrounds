@@ -31,13 +31,24 @@ npm install
 - `im:message` - 获取与发送单聊、群组消息
 - `im:message:group_at_msg:readonly` - 接收群聊中@机器人消息事件
 
-#### 2.3 配置事件订阅
+#### 2.3 配置事件订阅（回调）⭐ 重要
+
+**这是最关键的一步！** 必须配置事件订阅才能接收群聊消息。
 
 1. 进入"事件订阅"页面
-2. 添加事件：`im.message.receive_v1` (接收消息)
-3. 设置请求地址：`https://your-domain.com/webhook`
-4. 如果配置了加密，需要填写 `Encrypt Key`
-5. 如果配置了验证令牌，需要填写 `Verification Token`
+2. **配置请求地址（Webhook）**：
+   - 在"请求地址 URL"中填入你的 Webhook 地址：`https://your-domain.com/webhook`
+   - 点击"保存"，飞书会自动验证地址
+   - 确保验证成功（显示"验证成功"提示）
+3. **添加订阅事件**：
+   - 点击"添加事件"
+   - 选择：`im.message.receive_v1` (接收消息事件)
+   - 确保事件状态为"已订阅"
+4. **可选配置**：
+   - 如果配置了加密，需要填写 `Encrypt Key`（需与服务器环境变量一致）
+   - 如果配置了验证令牌，需要填写 `Verification Token`（需与服务器环境变量一致）
+
+> 📖 **详细配置步骤请参考：[FEISHU_CONFIG.md](./FEISHU_CONFIG.md)**
 
 #### 2.4 添加机器人到群聊
 
