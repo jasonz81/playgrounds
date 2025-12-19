@@ -1,6 +1,7 @@
 // 初始化餐厅列表
 let lunchRestaurants = [];
 let dinnerRestaurants = [];
+let fridayLunchRestaurants = [];
 let currentMealType = 'lunch'; // 当前选择的用餐类型
 
 // 加载餐厅列表
@@ -10,6 +11,7 @@ function loadRestaurants() {
         .then(data => {
             lunchRestaurants = data.lunch || [];
             dinnerRestaurants = data.dinner || [];
+            fridayLunchRestaurants = data.fridayLunch || [];
             updateRestaurantList();
         })
         .catch(error => {
@@ -17,13 +19,21 @@ function loadRestaurants() {
             // 使用默认餐厅列表
             lunchRestaurants = ['肯德基', '麦当劳', '必胜客', '真功夫', '永和大王'];
             dinnerRestaurants = ['海底捞', '小龙坎', '呷哺呷哺', '烧烤', '日料'];
+            fridayLunchRestaurants = ['肯德基', '麦当劳', '必胜客', '真功夫', '永和大王'];
             updateRestaurantList();
         });
 }
 
 // 获取当前类型的餐厅列表
 function getCurrentRestaurants() {
-    return currentMealType === 'lunch' ? lunchRestaurants : dinnerRestaurants;
+    if (currentMealType === 'lunch') {
+        return lunchRestaurants;
+    } else if (currentMealType === 'dinner') {
+        return dinnerRestaurants;
+    } else if (currentMealType === 'fridayLunch') {
+        return fridayLunchRestaurants;
+    }
+    return lunchRestaurants;
 }
 
 // 更新餐厅列表显示
@@ -115,7 +125,12 @@ function showEditModal() {
     const textarea = document.getElementById('restaurantTextarea');
     const titleElement = document.getElementById('editModalTitle');
     const restaurants = getCurrentRestaurants();
-    const mealTypeName = currentMealType === 'lunch' ? '午餐' : '晚餐';
+    let mealTypeName = '午餐';
+    if (currentMealType === 'dinner') {
+        mealTypeName = '晚餐';
+    } else if (currentMealType === 'fridayLunch') {
+        mealTypeName = '周五中午';
+    }
     
     titleElement.textContent = `编辑${mealTypeName}餐厅列表`;
     textarea.value = restaurants.join('\n');
@@ -138,8 +153,10 @@ function saveRestaurants() {
     // 根据当前用餐类型保存
     if (currentMealType === 'lunch') {
         lunchRestaurants = newRestaurants;
-    } else {
+    } else if (currentMealType === 'dinner') {
         dinnerRestaurants = newRestaurants;
+    } else if (currentMealType === 'fridayLunch') {
+        fridayLunchRestaurants = newRestaurants;
     }
     
     updateRestaurantList();
@@ -147,7 +164,8 @@ function saveRestaurants() {
     // 保存到 localStorage
     const data = {
         lunch: lunchRestaurants,
-        dinner: dinnerRestaurants
+        dinner: dinnerRestaurants,
+        fridayLunch: fridayLunchRestaurants
     };
     localStorage.setItem('restaurants', JSON.stringify(data));
     
@@ -168,9 +186,11 @@ function loadFromLocalStorage() {
             if (Array.isArray(data)) {
                 lunchRestaurants = data;
                 dinnerRestaurants = [];
+                fridayLunchRestaurants = [];
             } else {
                 lunchRestaurants = data.lunch || [];
                 dinnerRestaurants = data.dinner || [];
+                fridayLunchRestaurants = data.fridayLunch || [];
             }
             updateRestaurantList();
             return true;
@@ -194,7 +214,13 @@ function switchMealType(type) {
     
     // 更新标题
     const title = document.querySelector('.info-section h3');
-    title.textContent = type === 'lunch' ? '午餐餐厅列表' : '晚餐餐厅列表';
+    if (type === 'lunch') {
+        title.textContent = '午餐餐厅列表';
+    } else if (type === 'dinner') {
+        title.textContent = '晚餐餐厅列表';
+    } else if (type === 'fridayLunch') {
+        title.textContent = '周五中午餐厅列表';
+    }
     
     // 清空选择结果
     document.getElementById('result').textContent = '';
@@ -212,6 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('pickBtn').addEventListener('click', pickRestaurant);
     document.getElementById('lunchBtn').addEventListener('click', () => switchMealType('lunch'));
     document.getElementById('dinnerBtn').addEventListener('click', () => switchMealType('dinner'));
+    document.getElementById('fridayLunchBtn').addEventListener('click', () => switchMealType('fridayLunch'));
     document.getElementById('editBtn').addEventListener('click', showEditModal);
     document.getElementById('saveBtn').addEventListener('click', saveRestaurants);
     document.querySelector('.close').addEventListener('click', () => {
