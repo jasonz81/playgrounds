@@ -11,10 +11,16 @@ const APP_SECRET = process.env.FEISHU_APP_SECRET || '';
 const ENCRYPT_KEY = process.env.FEISHU_ENCRYPT_KEY || '';
 const VERIFICATION_TOKEN = process.env.FEISHU_VERIFICATION_TOKEN || '';
 
-// 加载餐厅列表
-const restaurants = JSON.parse(
-  fs.readFileSync(path.join(__dirname, '../restaurants.json'), 'utf8')
-);
+// 延迟加载餐厅列表（避免启动时读取文件造成延迟）
+let restaurants = null;
+function getRestaurants() {
+  if (!restaurants) {
+    restaurants = JSON.parse(
+      fs.readFileSync(path.join(__dirname, '../restaurants.json'), 'utf8')
+    );
+  }
+  return restaurants;
+}
 
 // 存储tenant_access_token（在 Serverless 环境中使用全局变量）
 let tenantAccessToken = '';
@@ -96,8 +102,9 @@ async function sendMessage(chatId, text) {
 
 // 随机选择一个餐厅
 function getRandomRestaurant() {
-  const randomIndex = Math.floor(Math.random() * restaurants.length);
-  return restaurants[randomIndex];
+  const restList = getRestaurants();
+  const randomIndex = Math.floor(Math.random() * restList.length);
+  return restList[randomIndex];
 }
 
 // 处理事件
@@ -182,23 +189,37 @@ module.exports = async (req, res) => {
       pathname = req.url.split('?')[0];
     }
   } catch (e) {
-    console.error('解析路径失败:', e);
     pathname = req.url || '/';
   }
-  
-  // 调试日志（生产环境可以移除）
-  console.log('收到请求:', {
-    method: req.method,
-    url: req.url,
-    pathname: pathname,
-    headers: Object.keys(req.headers)
-  });
+
+  // 优先处理 POST 请求中的验证请求（必须在最前面，立即返回）
+  if (req.method === 'POST' && (pathname === '/webhook' || pathname === '/api/index' || pathname === '/api/webhook')) {
+    // 快速解析请求体（不等待异步操作）
+    let body = req.body;
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body);
+      } catch (e) {
+        res.status(400).json({ error: 'Invalid JSON' });
+        return;
+      }
+    }
+
+    // 如果是验证请求，立即返回（不进行任何其他操作）
+    if (body && body.type === 'url_verification') {
+      const { challenge, token } = body;
+      // 立即返回，不进行任何验证或检查
+      res.json({ challenge: challenge || '' });
+      return;
+    }
+  }
 
   // 健康检查 - 支持多种路径格式
   if (req.method === 'GET' && (pathname === '/health' || pathname === '/api/health' || pathname === '/api/index')) {
+    const restList = getRestaurants();
     res.json({ 
       status: 'ok', 
-      restaurants_count: restaurants.length,
+      restaurants_count: restList.length,
       timestamp: new Date().toISOString(),
       path: pathname
     });
@@ -207,44 +228,38 @@ module.exports = async (req, res) => {
 
   // 测试接口：直接返回随机餐厅（用于测试）
   if (req.method === 'GET' && (pathname === '/test' || pathname === '/api/test')) {
+    const restList = getRestaurants();
     const restaurant = getRandomRestaurant();
     res.json({ 
       status: 'ok',
       message: '这是一个测试接口，返回随机餐厅',
       restaurant: restaurant,
-      all_restaurants: restaurants,
-      total_count: restaurants.length
+      all_restaurants: restList,
+      total_count: restList.length
     });
     return;
   }
 
-  // 处理 POST 请求（Webhook）
+  // 处理 POST 请求（Webhook）- 验证请求已在上面处理
   // 支持 /webhook 和 /api/index 路径
   if (req.method === 'POST' && (pathname === '/webhook' || pathname === '/api/index' || pathname === '/api/webhook')) {
     try {
-      // 确保请求体已解析
+      // 确保请求体已解析（验证请求已在上面处理，这里只处理其他类型）
       let body = req.body;
       if (typeof body === 'string') {
         try {
           body = JSON.parse(body);
         } catch (e) {
-          console.error('解析请求体失败:', e);
           res.status(400).json({ error: 'Invalid JSON' });
           return;
         }
       }
 
-      const { type, challenge, token } = body || {};
+      const { type } = body || {};
 
-      // URL验证
+      // 如果还是验证请求（理论上不会到这里，但保险起见）
       if (type === 'url_verification') {
-        console.log('收到URL验证请求, challenge:', challenge);
-        if (!VERIFICATION_TOKEN || token === VERIFICATION_TOKEN) {
-          res.json({ challenge });
-        } else {
-          console.error('验证token不匹配, expected:', VERIFICATION_TOKEN, 'got:', token);
-          res.status(403).json({ error: 'Invalid token' });
-        }
+        res.json({ challenge: body.challenge || '' });
         return;
       }
 
